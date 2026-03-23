@@ -351,15 +351,15 @@ export default function App() {
 
         :root {
           --bg: #0C0C14;
-          --bg2: #13131E;
+          --bg2: #18182A;
           --bg3: #1A1A2A;
           --cyan: #00F5FF;
           --magenta: #FF006E;
           --yellow: #FFE66D;
           --green: #00FF88;
-          --dim: #4A4A6A;
-          --text: #C8C8E8;
-          --border: #2A2A3E;
+          --dim: #E0E0FF;
+          --text: #FFFFFF;
+          --border: #8888AA;
         }
 
         body {
@@ -454,14 +454,14 @@ export default function App() {
         }
 
         .tagline {
-          font-size: 0.8rem; color: var(--dim);
+          font-size: 0.8rem; color: #F0F0FF;
           margin-bottom: 0.5rem;
         }
 
         .x402-badge {
           display: inline-flex; align-items: center; gap: 0.5rem;
-          font-size: 0.72rem; color: var(--dim);
-          border: 1px solid var(--border);
+          font-size: 0.72rem; color: #E8E8FF;
+          border: 1px solid #8888AA;
           padding: 0.3rem 0.7rem;
         }
 
@@ -491,7 +491,7 @@ export default function App() {
         }
 
         .panel-label {
-          font-size: 0.65rem; color: var(--dim);
+          font-size: 0.65rem; color: #E0E0FF;
           letter-spacing: 0.15em; margin-bottom: 1.25rem;
           border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
         }
@@ -508,7 +508,7 @@ export default function App() {
         }
 
         .wallet-input:focus { border-color: var(--cyan); }
-        .wallet-input::placeholder { color: var(--dim); }
+        .wallet-input::placeholder { color: #AAAAEE; }
         .wallet-input:disabled { opacity: 0.5; }
 
         .input-status {
@@ -521,14 +521,14 @@ export default function App() {
 
         .preview-info { margin-bottom: 1rem; }
         .preview-label { font-size: 0.65rem; color: var(--yellow); letter-spacing: 0.1em; }
-        .preview-note { font-size: 0.65rem; color: var(--dim); margin-top: 0.2rem; }
+        .preview-note { font-size: 0.65rem; color: #E0E0FF; margin-top: 0.2rem; }
 
         /* Steps */
         .steps { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
 
         .step {
           display: flex; align-items: center; gap: 0.6rem;
-          font-size: 0.72rem; color: var(--dim); padding: 0.4rem;
+          font-size: 0.72rem; color: #E0E0FF; padding: 0.4rem;
           transition: color 0.3s;
         }
 
@@ -536,7 +536,7 @@ export default function App() {
 
         .step-n {
           font-family: 'Press Start 2P', monospace;
-          font-size: 0.55rem; color: var(--dim);
+          font-size: 0.55rem; color: #E0E0FF;
           min-width: 24px;
         }
 
@@ -602,14 +602,14 @@ export default function App() {
 
         .btn-reset {
           padding: 0.7rem; background: transparent;
-          border: 1px solid var(--dim); color: var(--dim);
+          border: 1px solid #9090BB; color: #E0E0FF;
           font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
           cursor: pointer; transition: border-color 0.15s, color 0.15s;
         }
         .btn-reset:hover { border-color: var(--text); color: var(--text); }
 
         .success-note {
-          font-size: 0.68rem; color: var(--dim); line-height: 1.5;
+          font-size: 0.68rem; color: #E0E0FF; line-height: 1.5;
         }
 
         /* ── NFT Preview ── */
@@ -643,7 +643,7 @@ export default function App() {
           0%,100%{opacity:0.4} 50%{opacity:0.1}
         }
 
-        .empty-label { font-size: 0.65rem; color: var(--dim); }
+        .empty-label { font-size: 0.65rem; color: #E0E0FF; }
 
         .nft-preview-wrapper {
           width: 100%; height: 100%; position: relative;
@@ -691,7 +691,7 @@ export default function App() {
           font-size: 0.7rem; padding: 0.35rem 0;
           border-bottom: 1px solid var(--border);
         }
-        .meta-key { color: var(--dim); }
+        .meta-key { color: #E0E0FF; }
         .meta-val { color: var(--text); }
         .meta-price { color: var(--yellow); }
 
@@ -700,7 +700,7 @@ export default function App() {
 
         .explainer-title {
           font-family: 'Press Start 2P', monospace;
-          font-size: 0.65rem; color: var(--dim);
+          font-size: 0.65rem; color: #E8E8FF;
           letter-spacing: 0.15em; margin-bottom: 1rem;
         }
 
@@ -724,10 +724,10 @@ export default function App() {
           margin-bottom: 0.6rem;
         }
 
-        .ex-text { font-size: 0.7rem; color: var(--dim); line-height: 1.6; }
+        .ex-text { font-size: 0.7rem; color: #E0E0FF; line-height: 1.6; }
 
         footer {
-          text-align: center; font-size: 0.65rem; color: var(--dim);
+          text-align: center; font-size: 0.65rem; color: #C8C8F0;
           letter-spacing: 0.1em;
         }
       `}</style>
