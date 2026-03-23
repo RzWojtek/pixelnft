@@ -1,16 +1,15 @@
 // api/generate.js — Vercel Serverless Function
-// Obsługuje x402: zwraca 402 bez płatności, 200 + SVG po weryfikacji
-
-import { withPaymentRequired } from "@x402/next";
+// x402: returns 402 without valid payment, 200 + SVG after verification
 
 const RECIPIENT = process.env.RECIPIENT_ADDRESS ?? "0x0000000000000000000000000000000000000000";
 const FACILITATOR = process.env.FACILITATOR_URL ?? "https://x402.org/facilitator";
+const PRICE = "0.05";
+const NETWORK = "base";
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 // ─── Pixel Art Generator ──────────────────────────────────────────────────────
-// Deterministyczny: ten sam adres = ta sama grafika, zawsze.
 
 function hexToSeed(hex) {
-  // Zamienia adres Ethereum na tablicę liczb jako seed
   const clean = hex.toLowerCase().replace("0x", "");
   const nums = [];
   for (let i = 0; i < clean.length; i += 2) {
@@ -20,14 +19,13 @@ function hexToSeed(hex) {
 }
 
 function seededRand(seed, index) {
-  // Prosty LCG PRNG — deterministyczny
-  let s = (seed[index % seed.length] * 1664525 + 1013904223 + index * 6364136223846793005n) >>> 0;
+  let s = ((seed[index % seed.length] * 1664525 + 1013904223) ^ (index * 0x9e3779b9)) >>> 0;
   s = (s ^ (s >> 16)) >>> 0;
   return s / 0xffffffff;
 }
 
-function pickColor(seed, offset) {
-  // Palety pixelartowe — 8 motywów
+function generatePixelArt(address) {
+  const seed = hexToSeed(address);
   const palettes = [
     ["#FF6B6B", "#FFE66D", "#4ECDC4", "#1A535C", "#FF6B35"],
     ["#E63946", "#457B9D", "#A8DADC", "#1D3557", "#F1FAEE"],
@@ -38,49 +36,31 @@ function pickColor(seed, offset) {
     ["#FFBE0B", "#FB5607", "#FF006E", "#8338EC", "#3A86FF"],
     ["#D62828", "#F77F00", "#FCBF49", "#EAE2B7", "#003049"],
   ];
-  const paletteIdx = Math.floor(seededRand(seed, offset) * palettes.length);
+  const paletteIdx = Math.floor(seededRand(seed, 0) * palettes.length);
   const palette = palettes[paletteIdx];
-  const colorIdx = Math.floor(seededRand(seed, offset + 1) * palette.length);
-  return { color: palette[colorIdx], bg: palette[(colorIdx + 2) % palette.length], palette };
-}
-
-function generatePixelArt(address) {
-  const seed = hexToSeed(address);
-  const SIZE = 16; // 16x16 pikseli
-  const PIXEL = 24; // każdy piksel = 24px w SVG → 384x384 SVG
-  const TOTAL = SIZE * PIXEL;
-
-  // Kolory
-  const { color: mainColor, bg: bgColor, palette } = pickColor(seed, 0);
+  const colorIdx = Math.floor(seededRand(seed, 1) * palette.length);
+  const mainColor = palette[colorIdx];
+  const bgColor = palette[(colorIdx + 2) % palette.length];
   const accentColor = palette[Math.floor(seededRand(seed, 10) * palette.length)];
   const shadowColor = palette[Math.floor(seededRand(seed, 11) * palette.length)];
 
-  // Generuj siatkę 8x16, potem odbij symetrycznie (klasyczny pixel avatar)
-  const half = SIZE / 2; // 8 kolumn
+  const SIZE = 16, PIXEL = 24, TOTAL = SIZE * PIXEL, half = SIZE / 2;
   const grid = [];
-
   for (let row = 0; row < SIZE; row++) {
     const rowArr = [];
     for (let col = 0; col < half; col++) {
-      // Więcej pikseli w środku (głowa / tułów)
       const distFromCenter = Math.abs(col - half / 2) / (half / 2);
       const density = 0.55 - distFromCenter * 0.25;
-      const val = seededRand(seed, row * half + col + 20);
-      rowArr.push(val < density ? 1 : 0);
+      rowArr.push(seededRand(seed, row * half + col + 20) < density ? 1 : 0);
     }
-    // Symetria lewa-prawa
     grid.push([...rowArr, ...[...rowArr].reverse()]);
   }
 
-  // Buduj SVG
   let pixels = "";
-
   for (let row = 0; row < SIZE; row++) {
     for (let col = 0; col < SIZE; col++) {
       if (grid[row][col] === 1) {
-        const x = col * PIXEL;
-        const y = row * PIXEL;
-        // Akcent lub główny kolor zależnie od pozycji
+        const x = col * PIXEL, y = row * PIXEL;
         const useAccent = seededRand(seed, row * SIZE + col + 100) < 0.2;
         const useShadow = seededRand(seed, row * SIZE + col + 200) < 0.1;
         const fill = useShadow ? shadowColor : useAccent ? accentColor : mainColor;
@@ -89,65 +69,98 @@ function generatePixelArt(address) {
     }
   }
 
-  // Krótki hash adresu jako "token ID"
   const tokenId = address.slice(2, 10).toUpperCase();
-
-  const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${TOTAL}" height="${TOTAL + 48}" viewBox="0 0 ${TOTAL} ${TOTAL + 48}" shape-rendering="crispEdges">
-  <defs>
-    <pattern id="bg-dots" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-      <rect width="4" height="4" fill="${bgColor}"/>
-      <rect x="0" y="0" width="2" height="2" fill="${bgColor}" opacity="0.6"/>
-    </pattern>
-  </defs>
-
-  <!-- Tło -->
+  return {
+    tokenId,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${TOTAL}" height="${TOTAL + 48}" viewBox="0 0 ${TOTAL} ${TOTAL + 48}" shape-rendering="crispEdges">
   <rect width="${TOTAL}" height="${TOTAL + 48}" fill="${bgColor}"/>
-  <rect width="${TOTAL}" height="${TOTAL + 48}" fill="url(#bg-dots)" opacity="0.3"/>
-
-  <!-- Ramka pixel -->
   <rect x="4" y="4" width="${TOTAL - 8}" height="${TOTAL - 8}" fill="none" stroke="${mainColor}" stroke-width="4" opacity="0.4"/>
-  <rect x="8" y="8" width="${TOTAL - 16}" height="${TOTAL - 16}" fill="none" stroke="${mainColor}" stroke-width="2" opacity="0.2"/>
-
-  <!-- Piksele awatara -->
   ${pixels}
-
-  <!-- Pasek dolny -->
   <rect x="0" y="${TOTAL}" width="${TOTAL}" height="48" fill="${mainColor}"/>
   <text x="${TOTAL / 2}" y="${TOTAL + 20}" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${bgColor}" opacity="0.7">PIXEL NFT</text>
   <text x="${TOTAL / 2}" y="${TOTAL + 38}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="${bgColor}">#${tokenId}</text>
-</svg>`;
+</svg>`,
+  };
+}
 
-  return { svg: svgContent, tokenId, mainColor, bgColor };
+// ─── x402 manual implementation ──────────────────────────────────────────────
+
+async function verifyPayment(paymentHeader, wallet) {
+  try {
+    const res = await fetch(`${FACILITATOR}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payment: paymentHeader,
+        paymentRequirements: buildRequirements(wallet),
+      }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.isValid === true;
+  } catch {
+    return false;
+  }
+}
+
+function buildRequirements(wallet) {
+  return {
+    scheme: "exact",
+    network: NETWORK,
+    maxAmountRequired: String(Math.round(parseFloat(PRICE) * 1_000_000)),
+    resource: `https://pixelnft.vercel.app/api/generate?wallet=${wallet}`,
+    description: "Pixel NFT — unique avatar from wallet address",
+    mimeType: "image/svg+xml",
+    payTo: RECIPIENT,
+    maxTimeoutSeconds: 300,
+    asset: USDC_BASE,
+    outputSchema: null,
+    extra: null,
+  };
 }
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
-async function handler(req, res) {
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-PAYMENT, X-PAYMENT-RESPONSE");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { wallet } = req.query;
   if (!wallet || !wallet.startsWith("0x") || wallet.length < 10) {
-    return res.status(400).json({ error: "Podaj prawidłowy adres portfela (0x...)" });
+    return res.status(400).json({ error: "Provide a valid Ethereum wallet address (0x...)" });
   }
 
-  const { svg, tokenId, mainColor, bgColor } = generatePixelArt(wallet);
+  const paymentHeader = req.headers["x-payment"];
+
+  if (!paymentHeader) {
+    res.setHeader("Content-Type", "application/json");
+    return res.status(402).json({
+      x402Version: 1,
+      accepts: [buildRequirements(wallet)],
+      error: "X-PAYMENT header is required",
+    });
+  }
+
+  const isValid = await verifyPayment(paymentHeader, wallet);
+  if (!isValid) {
+    return res.status(402).json({
+      error: "Payment verification failed",
+      x402Version: 1,
+      accepts: [buildRequirements(wallet)],
+    });
+  }
+
+  const { svg, tokenId } = generatePixelArt(wallet);
 
   res.setHeader("Content-Type", "image/svg+xml");
-  res.setHeader("Cache-Control", "public, max-age=31536000, immutable"); // SVG jest deterministyczny = można cache'ować
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   res.setHeader("X-Token-Id", tokenId);
-  res.setHeader("X-Wallet", wallet.slice(0, 10) + "...");
+  res.setHeader("X-PAYMENT-RESPONSE", JSON.stringify({ success: true, tokenId }));
 
   return res.status(200).send(svg);
 }
-
-// Owijamy handler w x402 — wymaga $0.05 USDC na Base przed dostępem
-export default withPaymentRequired(handler, {
-  amount: "0.05",
-  currency: "USDC",
-  network: "base-mainnet",
-  recipientAddress: RECIPIENT,
-  facilitatorUrl: FACILITATOR,
-  description: "Pixel NFT — unikalny awatar z adresu portfela",
-});
